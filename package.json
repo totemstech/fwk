@@ -1,6 +1,6 @@
 {
   "name": "fwk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Simple JS framework for node.js",
   "keywords": ["fwk", "node"],
   "homepage": "https://github.com/teleportd/fwk",
