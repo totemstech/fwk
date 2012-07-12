@@ -8,7 +8,7 @@ var should = require('should');
 describe("unit:cache", function() {
   
   before(function(){
-    cache = require("../lib/cacheproto.js");
+    cache = require("../lib/cache.js");
     cache = cache.cache({interval: 1,
                          evict: 'LRU',
                          size: 3});
