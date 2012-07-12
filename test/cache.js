@@ -5,143 +5,214 @@
 var cache;
 var should = require('should');
 
-describe("cache test suit ", function() {
+describe("unit:cache", function() {
   
-  describe("LRU cache", function(doneLRU) {
-    //test suit initialization
-    before(function(){
-      cache = require("../lib/cache.js");
-      cache = cache.cache({interval: 1,
-                           evict: 'LRU',
-                           size: 3});
-    });
-
-    it("should return undefined after timeout", function(done){
-      cache.set("hello", "World", 3);
-      setTimeout(function(){
-        should.equal(cache.get("hello"), undefined);
-        done();
-      }, 5);
-    });
-    
-    it('should return "World" timeout not reached yet', function(done){
-      cache.set("hello", "World");
-      setTimeout(function(){
-        should.equal(cache.get("hello"), "World");
-        done();
-      }, 2);
-    });
-    
-    it('should return "World" timeout never reach until invalidate is called', function(done){
-      cache.set("hello", "World");
-      setTimeout(function(){
-        should.equal(cache.get("hello"), "World");
-        cache.invalidate("hello");
-        should.equal(cache.get("hello"), undefined);
-        done();
-      }, 5);
-    });
-    
-    it('should invalidate the least used element LRU', function(done){
-      cache.set("France", "Paris");
-      
-      setTimeout(function() {
-        cache.set("Germany", "Berlin")
-      }, 1);
-      
-      setTimeout(function() {
-        cache.set("UK", "London");
-      }, 2);
-      
-      setTimeout(function() {
-        cache.set("Norway", "Oslo");
-      }, 3);
-
-      setTimeout(function() {
-        should.equal(cache.get("UK"), "London");
-        should.equal(cache.get("Norway"), "Oslo");
-        should.equal(cache.get("Germany"), "Berlin");
-        should.equal(cache.get("France"), undefined);
-        done();
-      }, 4);
-    });
-  });  
-  
-  describe("MRU", function() {
-    before(function(done){
-      cache = require("../lib/cache.js");
-      cache = cache.cache({interval: 1,
-                           evict: 'MRU',
-                           size: 3});
-      done();
-    });
-
-    it("it should invalidate the most used element", function(done) {
-      cache.set("France", "Paris");
-      
-      setTimeout(function() {
-        cache.set("UK", "London");
-      }, 1);
-      
-      setTimeout(function() {
-        cache.set("Germany", "Berlin")
-      }, 2);
-      
-      setTimeout(function() {
-        cache.set("Norway", "Oslo");
-      }, 4);
-
-      setTimeout(function() {
-        should.equal(cache.get("France"), "Paris");
-        should.equal(cache.get("UK"), "London");
-        should.equal(cache.get("Germany"), "Berlin");  
-        should.equal(cache.get("Norway"), undefined);
-        done();
-      }, 5);
-    });
+  before(function(){
+    cache = require("../lib/cache.js");
+    cache = cache.cache({interval: 1,
+                         evict: 'LRU',
+                         size: 3});
   });
 
-  describe("RR", function() {
-    before(function(done){
-      cache = require("../lib/cache.js");
-      cache = cache.cache({interval: 1,
-                           evict: 'RR',
-                           size: 3});
-      done();
-    });
+  it('should return cached value', function(done){
+    //used to assert the getter got called
+    var called = false;
+    var numcall = 0;
 
-    it("it should invalidate a random  element", function(done) {
-      cache.set("France", "Paris");
-      
-      setTimeout(function() {
-        cache.set("Germany", "Berlin")
-      }, 1);
-      
-      setTimeout(function() {
-        cache.set("UK", "London");
-      }, 2);
-      
-      setTimeout(function() {
-        cache.set("Norway", "Oslo");
-      }, 3);
+    var getter = function(key, cb) {
+      var blockingMock = {hello : "world"};
+      called = true;
+      cb(null, blockingMock[key]);
+      numcall++;
+      if(numcall > 1)
+        throw new Error('getter called on supossedly cached value');
+    };
 
-      setTimeout(function() {
-        var res = [];
-        var containUndefined = false;
-        res.push(cache.get("UK"));
-        res.push(cache.get("Germany"));
-        res.push(cache.get("France"));
-        res.push(cache.get("Norway"));
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert cache miss
+                           true.should.equal(called);
+                           called = false;
+                         });
+
+
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert cache hit
+                           false.should.equal(called);
+                           done();
+                         });
+  }); 
+  
+  
+  it('should hit the cache two times, testing timeout', function(done){
+    //used to assert the getter got called
+    var called = false;
+    
+    var getter = function(key, cb) {
+      var blockingMock = {hello : "world"};
+      called = true;
+      cb(null, blockingMock[key]);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert cache hit
+                           true.should.equal(called);
+                           called = false;
+                         });
+    
+    setTimeout(function() {
+      cache.get("hello", { getter: getter,
+                           timeout: 2}, function(err, val) {
+                             should.equal(val, "world");
+                             //assert cache hit
+                             true.should.equal(called);
+                             called = false;
+                             done();
+                           });
+    }, 5);
+  });
+  
+  //many concurrent hits
+  it('should do one cache hit', function(done) {
+    var called = false;
+    var getter = function(key, cb) {
+      var blockingMock = {hello : "world"};
+      called = true;
+      cb(null, blockingMock[key]);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert cache hit
+                           true.should.equal(called);
+                           called = false;
+                         });
+
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert no cache hit
+                           false.should.equal(called);
+                         });
+    
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert no cache hit
+                           false.should.equal(called);
+                         });
+    
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert no cache hit
+                           false.should.equal(called);
+                           done();
+                         }); 
+  });
+  
+  it('should invalidate keys staring with "h" ', function(done) {
+    var called = false;
+    var getter = function(key, cb) {
+      var blockingMock = {hello : "world"};
+      called = true;
+      cb(null, blockingMock[key]);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter,
+                         timeout: 2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert cache hit
+                           true.should.equal(called);
+                           called = false;
+                         }); 
+    var re = /^h/;
+    cache.invalidate(re);
+    
+    cache.get("hello", { getter: getter,
+                         timeout:2}, function(err, val) {
+                           should.equal(val, "world");
+                           //assert cache hit
+                           true.should.equal(called);
+                           called = false;
+                           done();
+                         });
+    // test w/ 3 values 2 matching one non matching
+  });
+
+  describe("LRU",function() {
+    it('should invalidate least used element when the cache is full', function(done){
+      //used to assert the getter got called
+      var called = false;
       
-        for(var i = 0; i < res.length; i++) {
-          if(res[i] === undefined)
-            containUndefined = true;
-        }
+      var getter = function(key, cb) {
+        var blockingMock = {
+          hello : "world",
+          France: "Paris",
+          Germany: "Berlin",
+          UK: "London"
+        };
+        called = true;
+        cb(null, blockingMock[key]);
+      };
+      
+      cache.invalidate();
+      
+      cache.get("hello", { getter: getter},
+                function(err, val) {
+                  should.equal(val, "world");
+                  //assert cache hit
+                  true.should.equal(called);
+                });
+      
+      setTimeout(function() {
+        cache.get("France", { getter: getter},
+                  function(err, val) {
+                    should.equal(val, "Paris");
+                    //assert cache hit
+                    true.should.equal(called);
+                    called = false;
+                  });
         
-        should.equal(containUndefined, true);
-        done();
+        cache.get("Germany", { getter: getter},
+                  function(err, val) {
+                    should.equal(val, "Berlin");
+                    //assert cache hit
+                    true.should.equal(called);
+                    called = false;
+                  });
+        
+        cache.get("UK", { getter: getter},
+                  function(err, val) {
+                    should.equal(val, "London");
+                    //assert cache hit
+                    true.should.equal(called);
+                    called = false;
+                  });
+        
+        
+        cache.get("hello", { getter: getter },
+                  function(err, val) {
+                    should.equal(val, "world");
+                    //assert cache hit
+                    true.should.equal(called);
+                    called = false;
+                    done();
+                  });
       }, 4);
+      
     });
-  });
-  
+  });    
 });
