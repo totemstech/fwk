@@ -195,9 +195,50 @@ describe("unit:cache", function() {
     });
     
     cache.invalidate("hello");
+    
+  });
   
+  it("invalidate whole cache just after doing a get with delay ", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(val, "world");
+      done();
+    });
+    
+    cache.invalidate();
+    
   });
 
+  
+  it("invalidate cache elements who match a regex just after doing a get with delay ", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(val, "world");
+      done();
+    });
+    
+    cache.invalidate(/^hel/);
+    
+  });
+  
   describe("LRU",function() {
     it('should invalidate least used element when the cache is full', function(done){
       //used to assert the getter got called
