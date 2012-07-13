@@ -152,12 +152,12 @@ describe("unit:cache", function() {
     // test w/ 3 values 2 matching one non matching
   });
 
-  it("woo", function(done) {
+  it("fill the cache, delayed getter ", function(done) {
     
     var getter = function(key, cb) {
       var blockingMock = [0, 1, 2, 3, 4];
       setTimeout(function() {
-        cb(null, blockingMock[key]); 
+        cb(null, blockingMock[parseInt(key, 10)]); 
       }, 5);
     };
     
@@ -166,7 +166,7 @@ describe("unit:cache", function() {
     for(var i = 0; i < 5 ; i++) {
       (function(i) {
         setTimeout(function() {
-          cache.get(i, { getter: getter }, function(err, val) {
+          cache.get(i.toString(), { getter: getter }, function(err, val) {
             should.equal(val, i);
             if(i == 4) {
               done();
@@ -178,6 +178,97 @@ describe("unit:cache", function() {
     
   });
 
+  it("invalidate just after doing a get with delay ", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(val, "world");
+      done();
+    });
+    
+    cache.invalidate("hello");
+    
+  });
+  
+  it("invalidate whole cache just after doing a get with delay ", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(val, "world");
+      done();
+    });
+    
+    cache.invalidate();
+    
+  });
+
+  
+  it("invalidate cache elements who match a regex just after doing a get with delay ", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(val, "world");
+      done();
+    });
+    
+    cache.invalidate(/^hel/);
+    
+  });
+
+  it("assert an element is removed from the cache after invalidating it", function(done) {
+    
+    var called = false;
+
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        called = true
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+      
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(true, called);
+      called = false;
+      should.equal(val, "world");
+      cache.invalidate();
+    });
+    
+    setTimeout(function() {
+      cache.get("hello", { getter: getter }, function(err, val) {
+        should.equal(true, called);
+        should.equal(val, "world");
+        done();
+      });}, 10);
+    
+  });
+  
   describe("LRU",function() {
     it('should invalidate least used element when the cache is full', function(done){
       //used to assert the getter got called
@@ -185,7 +276,7 @@ describe("unit:cache", function() {
       
       var getter = function(key, cb) {
         var blockingMock = {
-          Switzerland : "Geneva",
+          hello : "world",
           France: "Paris",
           Germany: "Berlin",
           UK: "London"
@@ -196,9 +287,9 @@ describe("unit:cache", function() {
       
       cache.invalidate();
       
-      cache.get("Switzerland", { getter: getter },
+      cache.get("hello", { getter: getter },
                 function(err, val) {
-                  should.equal(val, "Geneva");
+                  should.equal(val, "world");
                   //assert cache hit
                   true.should.equal(called);
                   called = false;
@@ -231,9 +322,9 @@ describe("unit:cache", function() {
                   });
         
         
-        cache.get("Switzerland", { getter: getter },
+        cache.get("hello", { getter: getter },
                   function(err, val) {
-                    should.equal(val, "Geneva");
+                    should.equal(val, "world");
                     //assert cache hit
                     true.should.equal(called);
                     called = false;
