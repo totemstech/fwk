@@ -152,7 +152,7 @@ describe("unit:cache", function() {
     // test w/ 3 values 2 matching one non matching
   });
 
-  it("woo", function(done) {
+  it("fill the cache, delayed getter ", function(done) {
     
     var getter = function(key, cb) {
       var blockingMock = [0, 1, 2, 3, 4];
@@ -185,7 +185,7 @@ describe("unit:cache", function() {
       
       var getter = function(key, cb) {
         var blockingMock = {
-          Switzerland : "Geneva",
+          hello : "world",
           France: "Paris",
           Germany: "Berlin",
           UK: "London"
@@ -196,9 +196,9 @@ describe("unit:cache", function() {
       
       cache.invalidate();
       
-      cache.get("Switzerland", { getter: getter },
+      cache.get("hello", { getter: getter },
                 function(err, val) {
-                  should.equal(val, "Geneva");
+                  should.equal(val, "world");
                   //assert cache hit
                   true.should.equal(called);
                   called = false;
@@ -231,9 +231,9 @@ describe("unit:cache", function() {
                   });
         
         
-        cache.get("Switzerland", { getter: getter },
+        cache.get("hello", { getter: getter },
                   function(err, val) {
-                    should.equal(val, "Geneva");
+                    should.equal(val, "world");
                     //assert cache hit
                     true.should.equal(called);
                     called = false;
