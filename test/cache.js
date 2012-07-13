@@ -157,7 +157,7 @@ describe("unit:cache", function() {
     var getter = function(key, cb) {
       var blockingMock = [0, 1, 2, 3, 4];
       setTimeout(function() {
-        cb(null, blockingMock[key]); 
+        cb(null, blockingMock[parseInt(key, 10)]); 
       }, 5);
     };
     
@@ -166,7 +166,7 @@ describe("unit:cache", function() {
     for(var i = 0; i < 5 ; i++) {
       (function(i) {
         setTimeout(function() {
-          cache.get(i, { getter: getter }, function(err, val) {
+          cache.get(i.toString(), { getter: getter }, function(err, val) {
             should.equal(val, i);
             if(i == 4) {
               done();
@@ -176,6 +176,26 @@ describe("unit:cache", function() {
       })(i);
     }
     
+  });
+
+  it("invalidate just after doing a get with delay ", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(val, "world");
+      done();
+    });
+    
+    cache.invalidate("hello");
+  
   });
 
   describe("LRU",function() {
