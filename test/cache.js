@@ -238,6 +238,36 @@ describe("unit:cache", function() {
     cache.invalidate(/^hel/);
     
   });
+
+  it("assert an element is removed from the cache after invalidating it", function(done) {
+    
+    var called = false;
+
+    var getter = function(key, cb) {
+      var blockingMock = {"hello": "world"};
+      setTimeout(function() {
+        called = true
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+      
+    cache.invalidate();
+    
+    cache.get("hello", { getter: getter }, function(err, val) {
+      should.equal(true, called);
+      called = false;
+      should.equal(val, "world");
+      cache.invalidate();
+    });
+    
+    setTimeout(function() {
+      cache.get("hello", { getter: getter }, function(err, val) {
+        should.equal(true, called);
+        should.equal(val, "world");
+        done();
+      });}, 10);
+    
+  });
   
   describe("LRU",function() {
     it('should invalidate least used element when the cache is full', function(done){
