@@ -152,6 +152,32 @@ describe("unit:cache", function() {
     // test w/ 3 values 2 matching one non matching
   });
 
+  it("woo", function(done) {
+    
+    var getter = function(key, cb) {
+      var blockingMock = [0, 1, 2, 3, 4];
+      setTimeout(function() {
+        cb(null, blockingMock[key]); 
+      }, 5);
+    };
+    
+    cache.invalidate();
+    
+    for(var i = 0; i < 5 ; i++) {
+      (function(i) {
+        setTimeout(function() {
+          cache.get(i, { getter: getter }, function(err, val) {
+            should.equal(val, i);
+            if(i == 4) {
+              done();
+            }
+          });
+        }, i);
+      })(i);
+    }
+    
+  });
+
   describe("LRU",function() {
     it('should invalidate least used element when the cache is full', function(done){
       //used to assert the getter got called
@@ -159,7 +185,7 @@ describe("unit:cache", function() {
       
       var getter = function(key, cb) {
         var blockingMock = {
-          hello : "world",
+          Switzerland : "Geneva",
           France: "Paris",
           Germany: "Berlin",
           UK: "London"
@@ -170,12 +196,14 @@ describe("unit:cache", function() {
       
       cache.invalidate();
       
-      cache.get("hello", { getter: getter},
+      cache.get("Switzerland", { getter: getter },
                 function(err, val) {
-                  should.equal(val, "world");
+                  should.equal(val, "Geneva");
                   //assert cache hit
                   true.should.equal(called);
-                });
+                  called = false;
+                  done();
+                  });
       
       setTimeout(function() {
         cache.get("France", { getter: getter},
@@ -203,9 +231,9 @@ describe("unit:cache", function() {
                   });
         
         
-        cache.get("hello", { getter: getter },
+        cache.get("Switzerland", { getter: getter },
                   function(err, val) {
-                    should.equal(val, "world");
+                    should.equal(val, "Geneva");
                     //assert cache hit
                     true.should.equal(called);
                     called = false;
