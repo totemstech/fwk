@@ -8,7 +8,7 @@ var should = require('should');
 
 describe("unit:mplex", function() {
   
-  it('', function(){
+  it('callback and go', function(){
     var j = 0;
     for(var i = 0; i < 4; i++) {
       (function(cb) {
