@@ -10,49 +10,35 @@ describe("unit:lock", function() {
   
   it('wlock', function(done){
     var i = 0;
-    
-    lock.wlock("write", function(unlock) {
-      setTimeout(function() {
-        i = 2;
-        unlock(); 
-      }, 3);
+    var j = 0;
+
+    var unlock1, unlock2, unlock3;
+
+    lock.wlock("rw", function(unlock) {
+      i = 1;
+      unlock1 = unlock; 
     });      
     
-    lock.wlock("write", function(unlock) {
-      setTimeout(function() {
-        i = 3;
-        unlock();
-      }, 1);
+    lock.rlock("rw", function(unlock) {
+      i = 2;
+      unlock2 = unlock;
     });
-    
-    setTimeout(function() {
-      i.should.equal(3);
-      done();
-    }, 5);
+   
+   lock.rlock("rw", function(unlock) {
+     j = 2;  
+     unlock3 = unlock;
+   }); 
 
+   i.should.equal(1);
+   unlock1();
+
+    setTimeout(function() {
+     i.should.equal(2);
+     j.should.equal(2);
+     unlock2();
+     unlock3();
+     done();
+   }, 1);
   });
   
-  it('rlock', function(done){
-      var j = 0;
-    
-      lock.rlock("read", function(unlock) {
-        setTimeout(function() {
-          j = 2;
-          unlock(); 
-        }, 3);
-      });      
-    
-      lock.rlock("read", function(unlock) {
-        setTimeout(function() {
-          j = 3;
-          unlock();
-        }, 1);
-      });
-    
-      setTimeout(function() {
-        j.should.equal(3);
-        done();
-      }, 5);
-
-});
 });
