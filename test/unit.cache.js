@@ -2,17 +2,15 @@
  * Test dependencies.
  */
 
-var cache;
 var should = require('should');
 var util = require('util');
 
 describe("unit:cache", function() {
   
   before(function(){
-    cache = require("../lib/cache.js");
-    cache = cache.cache({interval: 1,
-                         evict: 'LRU',
-                         size: 3});
+    cache = require("../lib/cache.js").cache({ interval: 1,
+                                               evict: 'LRU',
+                                               size: 3 });
   });
 
   it('should return cached value', function(done){
@@ -250,9 +248,37 @@ describe("unit:cache", function() {
                            done();
                          }
                         }, function(err, val) {
-      should.equal(val, "world-evict");
-    });
+                          should.equal(val, "world-evict");
+                        });
     
+    cache.invalidate();
+  });
+
+  it("call multiple eviction callbacks when an element is invalidated", function(done) {
+    cache.invalidate();
+    var mplex = require('../lib/mplex.js').mplex({});
+    var cba = mplex.callback();
+    var cbb = mplex.callback();
+
+    cache.get("hello", { getter: function(key, cb) {
+                           cb(null, "world-evict");
+                         }, 
+                         evict: function() { cba(); }
+                       }, function(err, val) {
+                         should.equal(val, "world-evict");
+                       });
+    cache.get("hello", { getter: function(key, cb) {
+                           cb(null, "world-evict");
+                         }, 
+                         evict: function() { cbb(); }
+                       }, function(err, val) {
+                         should.equal(val, "world-evict");
+                       });
+
+    mplex.go(function() {
+      done();
+    });
+
     cache.invalidate();
   });
 
