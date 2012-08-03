@@ -254,33 +254,27 @@ describe("unit:cache", function() {
     cache.invalidate();
   });
 
-  it("call multiple eviction callbacks when an element is invalidated", function(done) {
+  it("call only the evict passed when the getter is used when an element is invalidated", function(done) {
     cache.invalidate();
-    var mplex = require('../lib/mplex.js').mplex({});
-    var cba = mplex.callback();
-    var cbb = mplex.callback();
 
     cache.get("hello", { getter: function(key, cb) {
                            cb(null, "world-evict");
                          }, 
-                         evict: function() { cba(); }
+                         evict: function() { done(); }
                        }, function(err, val) {
                          should.equal(val, "world-evict");
                        });
     cache.get("hello", { getter: function(key, cb) {
                            cb(null, "world-evict");
                          }, 
-                         evict: function() { cbb(); }
+                         evict: function() { throw new Error('wrong evict!'); }
                        }, function(err, val) {
                          should.equal(val, "world-evict");
                        });
-
-    mplex.go(function() {
-      done();
-    });
 
     cache.invalidate();
   });
+
 
   it("assert an element is removed from the cache after invalidating it", function(done) {
     
