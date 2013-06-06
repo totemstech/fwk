@@ -199,4 +199,14 @@ describe("unit:base", function() {
     that.ltrim().should.equal("hello   ");
   });
 
+  it("getKeys", function() {
+    var that = {};
+
+    that.one = 0;
+    that.two = 1;
+    that.three = 2;
+
+    base.getKeys(that).should.eql(['one', 'two', 'three']);
+  });
+
 });
